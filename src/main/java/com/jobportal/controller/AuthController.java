@@ -2,30 +2,20 @@ package com.jobportal.controller;
 
 import com.jobportal.dto.LoginRequest;
 import com.jobportal.dto.LoginResponse;
-import com.jobportal.entity.Role;
-import com.jobportal.entity.User;
 import com.jobportal.service.AuthService;
-import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
-    @Autowired
-    private AuthService authService;
 
-    @PostMapping("/register")
-    public User register(@RequestBody User user){
-        return authService.register(user);
-    }
+    private final AuthService authService;
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody @Valid LoginRequest request) {
+    public LoginResponse login(@RequestBody LoginRequest request) {
+        System.out.println("LOGIN API HIT");
         return authService.login(request);
     }
-
 }

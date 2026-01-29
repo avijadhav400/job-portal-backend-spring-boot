@@ -1,65 +1,34 @@
 package com.jobportal.service;
 
-
 import com.jobportal.dto.LoginRequest;
 import com.jobportal.dto.LoginResponse;
-import com.jobportal.entity.Role;
-import com.jobportal.entity.Status;
 import com.jobportal.entity.User;
 import com.jobportal.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.jobportal.security.JwtUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
-    @Autowired
-    private  UserRepository userRepository;
 
-    public User register(User user) {
-        if (user.getRole() == Role.RECRUITER) {
-            user.setStatus(Status.PENDING);
-        } else {
-            user.setStatus(Status.ACTIVE);
-        }
-        User savedUser = userRepository.save(user); // ✅ persist
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
 
-        return savedUser; // ✅ return managed entity
-    }
-
-    public User login(String email, String password){
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
-
-        if (!user.getPassword().equals(password)) {
-            throw new RuntimeException("Invalid credentials");
-        }
-
-        if (user.getStatus() != Status.ACTIVE) {
-            throw new RuntimeException("Account not active");
-        }
-
-        return user;
-    }
 
     public LoginResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
-        if (!user.getPassword().equals(request.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        if (user.getStatus() != Status.ACTIVE) {
-            throw new RuntimeException("Account not active. Current status: " + user.getStatus());
-        }
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
 
-        return new LoginResponse(
-                user.getId(),
-                user.getFullName(),
-                user.getEmail(),
-                user.getRole(),
-                user.getStatus()
-        );
+        return new LoginResponse(token, user.getRole().name());
     }
 }
