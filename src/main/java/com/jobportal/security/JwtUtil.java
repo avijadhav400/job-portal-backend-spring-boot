@@ -6,6 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 
@@ -18,6 +19,13 @@ public class JwtUtil {
     // Token validity: 1 hour
     private static final long EXPIRATION_TIME = 1000 * 60 * 60;
 
+    private static final String SECRET_KEY =
+            "jobportal_super_secret_key_1234567890";
+
+    private Key getSignKey() {
+        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+    }
+
     // Generate JWT
     public String generateToken(String email, String role) {
         return Jwts.builder()
@@ -25,7 +33,7 @@ public class JwtUtil {
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(key)
+                .signWith(getSignKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -43,7 +51,7 @@ public class JwtUtil {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getSignKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
