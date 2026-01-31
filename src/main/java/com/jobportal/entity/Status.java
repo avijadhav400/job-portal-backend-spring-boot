@@ -4,5 +4,6 @@ public enum Status {
     ACTIVE,
     INACTIVE,
     BLOCKED,
-    PENDING
+    PENDING,
+    APPROVED
 }

@@ -1,5 +1,6 @@
 package com.jobportal.security;
 
+import com.jobportal.entity.Status;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -49,6 +50,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     userDetailsService.loadUserByUsername(email);
 
             if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+
+                if (userDetails instanceof CustomUserPrincipal principal) {
+
+                    if (principal.getStatus() != Status.APPROVED) {
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.getWriter().write("User not approved by admin");
+                        return;
+                    }
+                }
 
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
