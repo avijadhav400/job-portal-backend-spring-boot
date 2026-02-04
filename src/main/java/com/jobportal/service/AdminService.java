@@ -16,6 +16,10 @@ public class AdminService {
     @Autowired
     private UserRepository userRepository;
 
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
     public List<User> pendingRecruiters(){
         return userRepository.findByRoleAndStatus(Role.RECRUITER, Status.PENDING);
     }

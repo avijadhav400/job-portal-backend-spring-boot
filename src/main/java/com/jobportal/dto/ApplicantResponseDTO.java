@@ -8,6 +8,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class ApplicantResponseDTO {
 
+    private Long applicationId;
     private Long jobId;
     private String jobTitle;
 

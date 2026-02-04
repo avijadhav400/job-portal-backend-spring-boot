@@ -25,6 +25,7 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
 
     @Query("""
     SELECT new com.jobportal.dto.ApplicantResponseDTO(
+        ja.id,
         j.id,
         j.title,
         s.id,
@@ -36,7 +37,7 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     JOIN ja.job j
     JOIN ja.seeker s
     WHERE j.recruiter.id = :recruiterId
-    ORDER BY j.id DESC
+    ORDER BY ja.id DESC
 """)
     List<ApplicantResponseDTO> findApplicantsByRecruiterId(
             @Param("recruiterId") Long recruiterId

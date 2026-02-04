@@ -14,6 +14,12 @@ public class AdminController {
     @Autowired
     private AdminService adminService;
 
+
+    @GetMapping("/users")
+    public List<User> getAllUsers() {
+        return adminService.getAllUsers();
+    }
+
     @GetMapping("/pending-recruiters")
     public List<User> pendingRecruiters() {
         return adminService.pendingRecruiters();

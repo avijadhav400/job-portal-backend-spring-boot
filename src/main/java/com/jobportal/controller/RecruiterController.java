@@ -3,12 +3,14 @@ package com.jobportal.controller;
 import com.jobportal.dto.ApplicantResponseDTO;
 import com.jobportal.dto.UpdateApplicationStatusRequest;
 import com.jobportal.entity.Job;
+import com.jobportal.security.CustomUserPrincipal;
 import com.jobportal.service.JobApplicationService;
 import com.jobportal.service.JobService;
 import com.jobportal.service.RecruiterService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,26 +33,31 @@ public class RecruiterController {
     @Autowired
     private RecruiterService recruiterService;
 
-    @GetMapping("/{recruiterId}/applicants")
-    public List<ApplicantResponseDTO> viewApplicants(
-            @PathVariable Long recruiterId
-    ) {
+    @GetMapping("/applicants")
+    public List<ApplicantResponseDTO> viewApplicants(Authentication authentication) {
+        // ✅ Extract recruiter ID from JWT token
+        CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
+        Long recruiterId = principal.getUserId();
+
         return recruiterService.viewApplicants(recruiterId);
     }
 
-    @PatchMapping("/applications/{applicationId}/status")
-    public ResponseEntity<String> updateApplicationStatus(
-            @PathVariable Long applicationId,
-            @RequestParam Long recruiterId,
-            @Valid @RequestBody UpdateApplicationStatusRequest request
+    @PatchMapping("/applications/{id}/status")
+    public ResponseEntity<Void> updateStatus(
+            @PathVariable("id") Long applicationId,
+            @RequestBody UpdateApplicationStatusRequest request,
+            Authentication authentication
     ) {
-        jobApplicationService.updateApplicationStatus(
-                recruiterId,
+        CustomUserPrincipal principal =
+                (CustomUserPrincipal) authentication.getPrincipal();
+
+        recruiterService.updateApplicationStatus(
+                principal.getUserId(),
                 applicationId,
                 request.getStatus()
         );
 
-        return ResponseEntity.ok("Application status updated successfully");
+        return ResponseEntity.ok().build();
     }
 
 }

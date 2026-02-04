@@ -1,6 +1,7 @@
 package com.jobportal.service;
 
 import com.jobportal.dto.AppliedJobDTO;
+import com.jobportal.dto.JobDTO;
 import com.jobportal.entity.*;
 import com.jobportal.repository.JobApplicationRepository;
 import com.jobportal.repository.JobRepository;
@@ -18,9 +19,35 @@ public class SeekerJobService {
     private final JobApplicationRepository applicationRepository;
     private final UserRepository userRepository;
 
-    // 1. View available jobs
-    public List<Job> viewOpenJobs() {
-        return jobRepository.findByStatus(JobStatus.OPEN);
+    // ✅ FIXED: seekerId added
+    public List<JobDTO> viewOpenJobs(Long seekerId) {
+
+        List<Job> jobs = jobRepository.findByStatus(JobStatus.OPEN);
+
+        return jobs.stream().map(job -> {
+
+            JobDTO dto = new JobDTO();
+            dto.setId(job.getId());
+            dto.setTitle(job.getTitle());
+            dto.setDescription(job.getDescription());
+            dto.setLocation(job.getLocation());
+            dto.setExperience(job.getExperience());
+            dto.setMinSalary(job.getMinSalary());
+            dto.setMaxSalary(job.getMaxSalary());
+            dto.setSkills(job.getSkills());
+            dto.setStatus(job.getStatus().name());
+
+            // ✅ THIS NOW WORKS CORRECTLY
+            dto.setAlreadyApplied(
+                    applicationRepository.existsByJobIdAndSeekerId(
+                            job.getId(),
+                            seekerId
+                    )
+            );
+
+            return dto;
+
+        }).toList();
     }
 
     // 2. Apply job
@@ -49,14 +76,14 @@ public class SeekerJobService {
         return "Job applied successfully";
     }
 
-
-
-    public List<Job> searchJobs(
+    // ✅ FIXED: return JobDTO instead of Job
+    public List<JobDTO> searchJobs(
             String keyword,
             String location,
             Integer minExperience,
             Integer minSalary,
-            Integer maxSalary
+            Integer maxSalary,
+            Long seekerId
     ) {
         return jobRepository.searchJobs(
                 JobStatus.OPEN,
@@ -65,7 +92,28 @@ public class SeekerJobService {
                 minExperience,
                 minSalary,
                 maxSalary
-        );
+        ).stream().map(job -> {
+
+            JobDTO dto = new JobDTO();
+            dto.setId(job.getId());
+            dto.setTitle(job.getTitle());
+            dto.setDescription(job.getDescription());
+            dto.setLocation(job.getLocation());
+            dto.setExperience(job.getExperience());
+            dto.setMinSalary(job.getMinSalary());
+            dto.setMaxSalary(job.getMaxSalary());
+            dto.setSkills(job.getSkills());
+            dto.setStatus(job.getStatus().name());
+
+            dto.setAlreadyApplied(
+                    applicationRepository.existsByJobIdAndSeekerId(
+                            job.getId(),
+                            seekerId
+                    )
+            );
+
+            return dto;
+        }).toList();
     }
 
     private String emptyToNull(String value) {
@@ -74,25 +122,21 @@ public class SeekerJobService {
 
     public List<AppliedJobDTO> viewAppliedJobs(Long seekerId) {
 
-        List<JobApplication> applications =
-                applicationRepository.findBySeekerId(seekerId);
+        return applicationRepository.findBySeekerId(seekerId)
+                .stream()
+                .map(app -> {
+                    Job job = app.getJob();
 
-        return applications.stream().map(app -> {
-            Job job = app.getJob();
+                    AppliedJobDTO dto = new AppliedJobDTO();
+                    dto.setJobId(job.getId());
 
-            AppliedJobDTO dto = new AppliedJobDTO();
-            dto.setJobId(job.getId());
-            dto.setTitle(job.getTitle());
-            dto.setLocation(job.getLocation());
-            dto.setSkills(job.getSkills());
-            dto.setExperience(job.getExperience());
-            dto.setMinSalary(job.getMinSalary());
-            dto.setMaxSalary(job.getMaxSalary());
-            dto.setAppliedAt(app.getAppliedAt());
+                    // ✅ FIXED FIELD NAMES
+                    dto.setJobTitle(job.getTitle());
+                    dto.setApplicationStatus(app.getApplicationStatus());
+                    dto.setAppliedAt(app.getAppliedAt());
 
-            return dto;
-        }).toList();
+                    return dto;
+                })
+                .toList();
     }
-
 }
-

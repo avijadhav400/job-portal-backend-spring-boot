@@ -11,6 +11,10 @@ import com.jobportal.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -79,7 +83,6 @@ public class JobService {
     public Job closeJob(Long jobId) {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new RuntimeException("Job not found"));
-
         job.setStatus(JobStatus.CLOSED);
         return jobRepository.save(job);
     }

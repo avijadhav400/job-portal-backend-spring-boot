@@ -1,6 +1,5 @@
 package com.jobportal.security;
 
-import com.jobportal.entity.Status;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,57 +30,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        // ✅ SKIP JWT FILTER FOR /auth/** endpoints (login, register)
+        String path = request.getServletPath();
+        if (path.startsWith("/auth")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         final String authHeader = request.getHeader("Authorization");
 
         String token = null;
         String email = null;
 
-        // 1️⃣ Extract token
+        // ✅ Extract token
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
-            email = jwtUtil.extractUsername(token);
+            try {
+                email = jwtUtil.extractUsername(token);
+            } catch (Exception e) {
+                // Invalid token, continue without auth
+            }
         }
 
-        // 2️⃣ Validate & set authentication
-        if (email != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+        // ✅ Validate token & set authentication
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(email);
+                if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
 
-            if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
 
-                if (userDetails instanceof CustomUserPrincipal principal) {
-
-                    if (principal.getStatus() != Status.APPROVED) {
-                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                        response.getWriter().write("User not approved by admin");
-                        return;
-                    }
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
-
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
-
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
-
-                // 🔥 THIS LINE IS CRITICAL
-                SecurityContextHolder
-                        .getContext()
-                        .setAuthentication(authToken);
-
-                // DEBUG (keep temporarily)
-                System.out.println(
-                        "AUTH SET WITH ROLES: " +
-                                userDetails.getAuthorities()
-                );
+            } catch (Exception e) {
+                // User not found or token invalid, continue without auth
             }
         }
 

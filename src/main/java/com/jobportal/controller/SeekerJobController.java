@@ -1,9 +1,11 @@
 package com.jobportal.controller;
 
 import com.jobportal.dto.AppliedJobDTO;
-import com.jobportal.entity.Job;
+import com.jobportal.dto.JobDTO;
+import com.jobportal.security.CustomUserPrincipal;
 import com.jobportal.service.SeekerJobService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,40 +17,52 @@ public class SeekerJobController {
 
     private final SeekerJobService seekerJobService;
 
-    // 1. View all open jobs
+    // ✅ FIXED principal usage
     @GetMapping("/open")
-    public List<Job> openJobs() {
-        return seekerJobService.viewOpenJobs();
+    public List<JobDTO> openJobs(Authentication authentication) {
+        CustomUserPrincipal principal =
+                (CustomUserPrincipal) authentication.getPrincipal();
+
+        Long seekerId = principal.getUserId();
+        return seekerJobService.viewOpenJobs(seekerId);
     }
 
-    // 2. Apply job
     @PostMapping("/apply")
-    public String applyJob(@RequestParam Long jobId,
-                           @RequestParam Long seekerId) {
-        return seekerJobService.applyJob(jobId, seekerId);
+    public void apply(@RequestParam Long jobId, Authentication authentication) {
+        CustomUserPrincipal principal =
+                (CustomUserPrincipal) authentication.getPrincipal();
+
+        seekerJobService.applyJob(jobId, principal.getUserId());
     }
 
-    @GetMapping("/applied/{seekerId}")
-    public List<AppliedJobDTO> viewAppliedJobs(
-            @PathVariable Long seekerId) {
-        return seekerJobService.viewAppliedJobs(seekerId);
+    @GetMapping("/applied")
+    public List<AppliedJobDTO> viewAppliedJobs(Authentication authentication) {
+        CustomUserPrincipal principal =
+                (CustomUserPrincipal) authentication.getPrincipal();
+
+        return seekerJobService.viewAppliedJobs(principal.getUserId());
     }
 
+    // ✅ FIXED: returns JobDTO with alreadyApplied
     @GetMapping("/search")
-    public List<Job> searchJobs(
+    public List<JobDTO> searchJobs(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) Integer minExperience,
             @RequestParam(required = false) Integer minSalary,
-            @RequestParam(required = false) Integer maxSalary
+            @RequestParam(required = false) Integer maxSalary,
+            Authentication authentication
     ) {
+        CustomUserPrincipal principal =
+                (CustomUserPrincipal) authentication.getPrincipal();
+
         return seekerJobService.searchJobs(
                 keyword,
                 location,
                 minExperience,
                 minSalary,
-                maxSalary
+                maxSalary,
+                principal.getUserId()
         );
     }
 }
-
